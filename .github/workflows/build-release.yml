@@ -22,15 +22,32 @@ jobs:
       with:
         python-version: '3.11'
     
-    - name: Install PlatformIO
+    - name: Install PlatformIO and dependencies
       run: |
         python -m pip install --upgrade pip
         pip install platformio
-        pip install pillow  # For png2c.py script
+        # Install dependencies for the pre-build scripts
+        pip install pillow numpy
+        # Also install in PlatformIO's Python environment
+        ~/.platformio/penv/bin/pip install pillow numpy || true
     
     - name: Build firmware
       run: |
-        pio run -e adafruit_feather_esp32s3_reversetft
+        # Initialize PlatformIO to ensure penv exists
+        pio system info
+        # Try installing PIL in PlatformIO's environment again after init
+        ~/.platformio/penv/bin/pip install pillow numpy || echo "Warning: Could not install in PIO penv"
+        # Build with verbose output
+        pio run -e adafruit_feather_esp32s3_reversetft -v
+        # Verify the firmware was actually built
+        if [ ! -f ".pio/build/adafruit_feather_esp32s3_reversetft/firmware.bin" ]; then
+          echo "ERROR: firmware.bin was not generated!"
+          echo "Build directory contents:"
+          ls -la .pio/build/adafruit_feather_esp32s3_reversetft/
+          echo "Checking for any .bin files:"
+          find .pio -name "*.bin" -type f
+          exit 1
+        fi
     
     - name: Get version
       id: get_version
