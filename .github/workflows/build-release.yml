@@ -31,24 +31,6 @@ jobs:
         # Also install in PlatformIO's Python environment
         ~/.platformio/penv/bin/pip install pillow numpy || true
     
-    - name: Build firmware
-      run: |
-        # Initialize PlatformIO to ensure penv exists
-        pio system info
-        # Try installing PIL in PlatformIO's environment again after init
-        ~/.platformio/penv/bin/pip install pillow numpy || echo "Warning: Could not install in PIO penv"
-        # Build with verbose output
-        pio run -e adafruit_feather_esp32s3_reversetft -v
-        # Verify the firmware was actually built
-        if [ ! -f ".pio/build/adafruit_feather_esp32s3_reversetft/firmware.bin" ]; then
-          echo "ERROR: firmware.bin was not generated!"
-          echo "Build directory contents:"
-          ls -la .pio/build/adafruit_feather_esp32s3_reversetft/
-          echo "Checking for any .bin files:"
-          find .pio -name "*.bin" -type f
-          exit 1
-        fi
-    
     - name: Get version
       id: get_version
       run: |
@@ -56,6 +38,30 @@ jobs:
           echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
         else
           echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+        fi
+    
+    - name: Update firmware version
+      run: |
+        # Get the version without 'v' prefix if present
+        VERSION="${{ steps.get_version.outputs.VERSION }}"
+        VERSION="${VERSION#v}"
+        # Update the firmware version in platformio.ini
+        sed -i "s/-DCURRENT_FIRMWARE_VERSION=\"\\\\\"[^\"]*\\\\\"\"/-DCURRENT_FIRMWARE_VERSION=\"\\\\\"${VERSION}\\\\\"\"/g" platformio.ini
+        echo "Updated firmware version to ${VERSION}"
+        grep CURRENT_FIRMWARE_VERSION platformio.ini
+    
+    - name: Build firmware
+      run: |
+        # Initialize PlatformIO to ensure penv exists
+        pio system info
+        # Try installing PIL in PlatformIO's environment again after init
+        ~/.platformio/penv/bin/pip install pillow numpy || echo "Warning: Could not install in PIO penv"
+        # Build firmware
+        pio run -e adafruit_feather_esp32s3_reversetft
+        # Verify the firmware was actually built
+        if [ ! -f ".pio/build/adafruit_feather_esp32s3_reversetft/firmware.bin" ]; then
+          echo "ERROR: firmware.bin was not generated!"
+          exit 1
         fi
     
     - name: Prepare release files
