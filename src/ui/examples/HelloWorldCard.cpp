@@ -1,5 +1,6 @@
 #include "ui/examples/HelloWorldCard.h"
 #include "Style.h"
+#include "hardware/Input.h"
 
 HelloWorldCard::HelloWorldCard(lv_obj_t* parent) : _card(nullptr), _label(nullptr) {
     _card = lv_obj_create(parent); // Create the card container
@@ -14,20 +15,25 @@ HelloWorldCard::HelloWorldCard(lv_obj_t* parent) : _card(nullptr), _label(nullpt
 }
 
 bool HelloWorldCard::handleButtonPress(uint8_t button_index) {
-    // Toggle between black and white backgrounds
-    static bool isBlack = true;
-    
-    if (isBlack) {
-        lv_obj_set_style_bg_color(_card, lv_color_white(), 0);
-        lv_obj_set_style_text_color(_label, lv_color_black(), 0);
-    } else {
-        lv_obj_set_style_bg_color(_card, lv_color_black(), 0);
-        lv_obj_set_style_text_color(_label, lv_color_white(), 0);
+    // only the center button should do anything here
+    if (button_index == Input::BUTTON_CENTER) {
+        // Toggle between black and white backgrounds
+        static bool isBlack = true;
+
+        if (isBlack) {
+            lv_obj_set_style_bg_color(_card, lv_color_white(), 0);
+            lv_obj_set_style_text_color(_label, lv_color_black(), 0);
+        } else {
+            lv_obj_set_style_bg_color(_card, lv_color_black(), 0);
+            lv_obj_set_style_text_color(_label, lv_color_white(), 0);
+        }
+
+        isBlack = !isBlack; // Toggle the state
+
+        return true; // We handled the button press
     }
-    
-    isBlack = !isBlack; // Toggle the state
-    
-    return true; // We handled the button press
+
+    return false; // let CardNavigationStack handle navigation buttons
 }
 
 HelloWorldCard::~HelloWorldCard() {
