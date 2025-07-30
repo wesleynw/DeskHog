@@ -142,6 +142,7 @@ void lvglHandlerTask(void* parameter) {
                         Serial.println("Simultaneous CENTER and DOWN hold for 2s detected. Entering deep sleep.");
                         // Optional: Turn off display backlight or other peripherals before sleep
                         // displayInterface->setBacklight(0); // Example if such a function exists
+			esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_GPIO);
                         esp_deep_sleep_start();
                     }
                 }
