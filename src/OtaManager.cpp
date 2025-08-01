@@ -421,13 +421,13 @@ UpdateInfo OtaManager::_parseGithubApiResponse(const String& jsonPayload) {
         return info;
     }
 
-    if (!doc.is<JsonArray>() || doc.as<JsonArray>().size() == 0) {
-        Serial.println(F("OtaManager: JSON is not an array or is empty. No release found?"));
+    if (!doc.is<JsonObject>()) {
+        Serial.println(F("OtaManager: JSON is not an object. No release found?"));
         info.error = "No release information found in API response.";
         return info;
     }
 
-    JsonObject latestRelease = doc.as<JsonArray>()[0];
+    JsonObject latestRelease = doc.as<JsonObject>();
     const char* tagName = latestRelease["tag_name"];
 
     if (tagName) {
@@ -446,8 +446,12 @@ UpdateInfo OtaManager::_parseGithubApiResponse(const String& jsonPayload) {
 
             JsonArray assets = latestRelease["assets"].as<JsonArray>();
             for (JsonObject asset : assets) {
-                if (String(asset["name"].as<String>()) == _firmwareAssetName) {
-                    info.downloadUrl = asset["browser_download_url"].as<String>();
+                String assetName = asset["name"].as<String>();
+                String downloadUrl = asset["browser_download_url"].as<String>();
+
+                if (assetName == _firmwareAssetName) {
+                    info.downloadUrl = downloadUrl;
+                    Serial.printf("OtaManager: MATCHED firmware asset '%s' with URL: %s\n", _firmwareAssetName.c_str(), downloadUrl.c_str());
                     break;
                 }
             }
@@ -530,7 +534,7 @@ void OtaManager::_checkUpdateTaskRunner(void* pvParameters) {
     // This uses the standard _setUpdateStatus which handles its own mutex and logging.
     self->_setUpdateStatus(UpdateStatus::State::CHECKING_VERSION, "Checking for updates (post-NTP)...", 0);
 
-    String apiUrl = "https://api.github.com/repos/" + self->_repoOwner + "/" + self->_repoName + "/releases";
+    String apiUrl = "https://api.github.com/repos/" + self->_repoOwner + "/" + self->_repoName + "/releases/latest";
     String jsonPayload = self->_performHttpsRequest(apiUrl.c_str(), self->_githubApiRootCa);
 
     UpdateInfo localCheckResult;
