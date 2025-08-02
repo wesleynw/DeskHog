@@ -96,7 +96,7 @@ OtaManager::OtaManager(const String& currentVersion, const String& repoOwner, co
         .idle_core_mask = (1 << CONFIG_FREERTOS_NUMBER_OF_CORES) - 1,
         .trigger_panic = true
     };
-    ESP_ERROR_CHECK(esp_task_wdt_init(&twdt_config_update));
+    ESP_ERROR_CHECK(esp_task_wdt_reconfigure(&twdt_config_update));
 
     _dataMutex = xSemaphoreCreateMutex();
     if (_dataMutex == NULL) {
